@@ -1,4 +1,4 @@
-const express = require("express");
+import express, { Request, Response } from "express";
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 
@@ -68,14 +68,14 @@ const Order = mongoose.model("Order", orderSchema, "orders");
 
 // routes
 
-app.post("/users", (req, res) => {
+app.post("/users", (req: Request, res: Response) => {
     const newUser = User(req.body);
     newUser
         .save()
-        .then((result) => {
+        .then((result: any) => {
             res.send(result);
         })
-        .catch((err) => {
+        .catch((err: any) => {
             res.status(500).send(err);
         });
 });
