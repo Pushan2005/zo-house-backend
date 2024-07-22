@@ -1,12 +1,18 @@
 import express, { Request, Response } from "express";
-const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
+import mongoose from "mongoose";
+import cors from "cors";
 
 const app = express();
 const port = 5000;
 
 // Middleware
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(
+    cors({
+        origin: "http://localhost:3000",
+    })
+);
 
 // MongoDB connection
 const uri =
@@ -23,6 +29,27 @@ const userSchema = new mongoose.Schema({
     phone: Number,
     wallet: String,
     debt: Number,
+});
+
+const orderSchema = new mongoose.Schema({
+    user: {
+        name: String,
+        ref: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+    },
+    items: [
+        {
+            name: String,
+            quantity: Number,
+        },
+    ],
+
+    price: Number,
+    status: String, // pending, confirmed, delivered
+    orderType: String, // cash or online
+    transactionId: String,
 });
 
 const itemSchema = new mongoose.Schema({
@@ -46,18 +73,6 @@ const menuSchema = new mongoose.Schema({
     category: String,
 });
 
-const orderSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-    },
-    item: String,
-    price: Number,
-    status: String, // pending, confirmed, delivered
-    orderType: String,
-    transactionId: String,
-});
-
 // models
 
 const User = mongoose.model("User", userSchema, "users");
@@ -66,19 +81,79 @@ const Inventory = mongoose.model("Inventory", inventorySchema, "inventory");
 const Menu = mongoose.model("Menu", menuSchema, "menu");
 const Order = mongoose.model("Order", orderSchema, "orders");
 
+// request interfaces
+interface incomingOrder {
+    user: {
+        name: string;
+        email?: string;
+        phone?: number;
+    };
+    items: {
+        name: string;
+        quantity: number;
+    }[];
+    price: number;
+    orderType: string; // cash or online
+}
+
 // routes
 
 app.post("/users", (req: Request, res: Response) => {
-    const newUser = User(req.body);
+    const newUser = new User(req.body);
     newUser
         .save()
         .then((result: any) => {
-            res.send(result);
+            res.send({ Success: true });
         })
         .catch((err: any) => {
             res.status(500).send(err);
         });
 });
+
+app.post(
+    "/neworder",
+    async (req: Request<any, any, incomingOrder>, res: Response) => {
+        console.log("Order recieved");
+
+        const { name } = req.body.user;
+
+        const findUserId = async (name: string) => {
+            const user = await User.findOne({ name: name });
+            const userId = user?._id;
+            return userId;
+        };
+
+        const userId = await findUserId(name);
+        const orderItems = req.body.items;
+        const orderPrice = req.body.price;
+        const orderType = req.body.orderType;
+        const status = "Pending";
+        const transactionId = "testTxnId1234";
+
+        const newOrder = new Order({
+            user: {
+                name: name,
+                ref: userId,
+            },
+            items: orderItems,
+            price: orderPrice,
+            status: status,
+            orderType: orderType,
+            transactionId: transactionId,
+        });
+        newOrder
+            .save()
+            .then((result: any) => {
+                console.log("Order placed successfully");
+                console.log(result);
+                res.send({ Success: true });
+            })
+            .catch((err: any) => {
+                console.log(err);
+                res.status(500).send(err);
+            });
+    }
+);
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
