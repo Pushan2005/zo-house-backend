@@ -11,12 +11,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
     cors({
         origin: "http://localhost:3000",
+        // origin: "*",
     })
 );
 
 // MongoDB connection
 const uri =
     "mongodb+srv://pushan:O0rv5jpt0ryy28gs@cluster0.bgz4rrk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// URI is removed at the time of making repository public for security reasons
 
 mongoose.connect(uri, {
     dbName: "zo",
@@ -43,6 +45,7 @@ const orderSchema = new mongoose.Schema({
         {
             name: String,
             quantity: Number,
+            special_instructions: String,
         },
     ],
 
@@ -111,10 +114,10 @@ app.post("/users", (req: Request, res: Response) => {
 });
 
 app.post(
-    "/neworder",
+    "/placeorder",
     async (req: Request<any, any, incomingOrder>, res: Response) => {
         console.log("Order recieved");
-
+        setTimeout;
         const { name } = req.body.user;
 
         const findUserId = async (name: string) => {
